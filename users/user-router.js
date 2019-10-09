@@ -1,11 +1,13 @@
 const express = require('express');
 
 const db = require('../data/db-config.js');
+const Users = require('./user-model.js');
+const {isValidUser} = require('./user-helpers.js')
 
 const router = express.Router();
 
 router.get('/', (req, res) => {
-  db('users')
+  Users.find()
   .then(users => {
     res.json(users);
   })
@@ -17,10 +19,8 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const { id } = req.params;
 
-  db('users').where({ id })
-  .then(users => {
-    const user = users[0];
-
+  Users.findById(id)
+  .then(user => {
     if (user) {
       res.json(user);
     } else {
@@ -32,16 +32,32 @@ router.get('/:id', (req, res) => {
   });
 });
 
-router.post('/', (req, res) => {
-  const userData = req.body;
-
-  db('users').insert(userData)
-  .then(ids => {
-    res.status(201).json({ created: ids[0] });
+router.get('/:id/posts', (req, res) => {
+  // select * from posts where user_id = 3
+  Users.findPostById(req.params.id)
+  .then(posts => {
+    res.status(200).json(posts)
   })
   .catch(err => {
-    res.status(500).json({ message: 'Failed to create new user' });
+    res.status(500).json({ message: 'Failed to get user' });
   });
+})
+
+router.post('/', (req, res) => {
+
+  if(isValidUser) {
+    
+    Users.add(req.body)
+    .then(ids => {
+      res.status(201).json({ created: ids[0] });
+    })
+    .catch(err => {
+      res.status(500).json({ message: 'Failed to create new user' });
+    });
+  } else {
+    res.status(400).json({ message: 'give the username' })
+  }
+
 });
 
 router.put('/:id', (req, res) => {
@@ -76,5 +92,22 @@ router.delete('/:id', (req, res) => {
     res.status(500).json({ message: 'Failed to delete user' });
   });
 });
+
+
+
+
+// router.get('/:id/posts', (req, res) => {
+//   // select * from posts where user_id = 3
+//   db('posts as p')
+//   .join('users as u', 'u.id', '=', 'p.user_id')
+//   .where({ user_id: req.params.id })
+//   .select('p.id', 'p.contents as quote', 'u.username as saidBy')
+//   .then(posts => {
+//     res.status(200).json(posts)
+//   })
+//   .catch(err => {
+//     res.status(500).json({ message: 'Failed to get user' });
+//   });
+// })
 
 module.exports = router;
